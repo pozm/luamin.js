@@ -35,7 +35,7 @@ let outputFile = "output.lua" // Where to write output
 
 let option = "b" // Option, minify / beautify
 let renameVariables = true
-let renameGlobals = true
+let renameGlobals = false
 let solveMath = true
 
 
@@ -50,6 +50,7 @@ const sleep = (milliseconds) => {
 
 
 function Main() {
+
     fs.readFile(`${inputFile}`, "utf8", (err, src) => {
         if (err) throw err;
 
@@ -59,17 +60,17 @@ function Main() {
             SolveMath: solveMath,
         }
         
-        let writeWhat
+        let writeWhat = luamin.Beautify(src, opts)
         //try {
-            if (option.toLowerCase() == "beautify".substr(0,option.length).toLowerCase()) {
-                writeWhat = luamin.Beautify(src, opts)
-            } else if(option.toLowerCase() == "minify".substr(0,option.length).toLowerCase()) {
-                writeWhat = luamin.Minify(src, opts)
-            } else if(option.toLowerCase() == "uglify".substr(0,option.length).toLowerCase()) {
-                writeWhat = luamin.Uglify(src, opts)
-            } else {
-                throw "No option? Gangster."
-            }
+        //     if (option.toLowerCase() == "beautify".substr(0,option.length).toLowerCase()) {
+        //         writeWhat = luamin.Beautify(src, opts)
+        //     } else if(option.toLowerCase() == "minify".substr(0,option.length).toLowerCase()) {
+        //         writeWhat = luamin.Minify(src, opts)
+        //     } else if(option.toLowerCase() == "uglify".substr(0,option.length).toLowerCase()) {
+        //         writeWhat = luamin.Uglify(src, opts)
+        //     } else {
+        //         throw "No option? Gangster."
+        //     }
         //} catch (err) {
         //    throw(`FAILED ${err}:${err.stack}`)
         //}
@@ -84,6 +85,9 @@ function Main() {
         }
     })
 }
+
+Main()
+
 
 let questions = [
     {
@@ -134,6 +138,9 @@ let questions = [
 
 
 async function ask(q, _callback) {
+
+    return
+
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,

@@ -25,9 +25,11 @@ const assert = function(a,b) {
         throw b
     }
 }
-
-function parseFloat(str, radix) { // Thanks stackoverflow (hex numbers with decimal)
-    var parts = str.split(".");
+function _parseFloat(str, radix) { // Thanks stackoverflow (hex numbers with decimal)
+    var parts = String(str).split(".");
+    if (!radix) {
+        return parseFloat(str)
+    }
     if (parts.length > 1) {
         return parseInt(parts[0], radix) + parseInt(parts[1], radix) / Math.pow(radix, parts[1].length);
     }
@@ -69,7 +71,7 @@ let Main_CharacterForEscape = {
 }
 
 const CharacterForEscape = new Proxy(Main_CharacterForEscape, { 
-    get(a, b) { return parseFloat(b) }
+    get(a, b) { return _parseFloat(b) }
 })
 
 let AllIdentStartChars = [
@@ -2326,9 +2328,9 @@ function FormatAst(ast) {
     function leadingChar(tk) {
         if (tk.LeadingWhite.length > 0) {
             return tk.LeadingWhite.substr(0,1)
-        } else {
+        } else if (typeof tk.Source == "string") {
             return tk.Source.substr(0,1)
-        }
+        } else return tk.Source
     }
 
     function padToken(tk) {
@@ -2671,7 +2673,8 @@ function FormatAst(ast) {
                 }
             })
         } else {
-            assert(false, "Unreachable")
+            console.log('what? unknown')
+            // assert(false, "Unreachable")
         }
     }
 
@@ -3049,6 +3052,7 @@ function StripAst(ast) {
 function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing this
     let solveStat
     let solveExpr
+    const backAST = ast
 
     let canSolve = {
         "NumberLiteral": true,
@@ -3181,11 +3185,11 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
         if (rhs.Type == "BooleanLiteral") right = rSrc == "true" ? true : false;
 
         if (lhs.Type == "NumberLiteral") {
-            left = parseFloat(lSrc)
+            left = _parseFloat(lSrc)
             if (left == null) return;
         }
         if (rhs.Type == "NumberLiteral") {
-            right = parseFloat(rSrc)
+            right = _parseFloat(rSrc)
             if (right == null) return;
         }
 
@@ -3199,11 +3203,13 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
             if (operator == "~=") return left != right;
             if (operator == "and") return left && right;
             if (operator == "or") return left || right;
-            if (operator == ".." && lhs.Type == "StringLiteral" && rhs.Type == "StringLiteral") 
+            if (operator == ".." && lhs.Type == "StringLiteral" && rhs.Type == "StringLiteral")
                 return `"${removething(lSrc) + removething(rSrc)}"`;
+            if (operator == ".." && (lhs.Type == "NumberLiteral" || rhs.Type == "NumberLiteral"))
+                return `"${lSrc}${rSrc}"`;
 
-            if (lhs.Type == "StringLiteral") left = parseFloat(removething(left));
-            if (rhs.Type == "StringLiteral") right = parseFloat(removething(right));
+            if (lhs.Type == "StringLiteral") left = _parseFloat(removething(left));
+            if (rhs.Type == "StringLiteral") right = _parseFloat(removething(right));
 
             if (left == null || right == null) return;
 
@@ -3220,7 +3226,7 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
             if (operator == ">=") val = left >= right;
             if (operator == "<=") val = left <= right;
 
-            if (val == false || val == true || (isFinite(val) && val > -(10 ** 6) && val < 10 ** 6 ))
+            if (val == false || val == true || (isFinite(val) && val > -(10 ** 8) && val < 10 ** 8 ))
                 return val;
         }
     }
@@ -3297,7 +3303,7 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
 
         if (rhs.Type == "BooleanLiteral") right = rSrc == "true" ? true : false;
         if (rhs.Type == "NumberLiteral") {
-            right = parseFloat(rSrc)
+            right = _parseFloat(rSrc)
             if (right === null) return;
         }
         if (rhs.Type == "StringLiteral") right = rSrc.substr(1,rSrc.length - 2);
@@ -3425,7 +3431,7 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
             let token = expr.Token
             if (token != null) {
                 if (token.Type == "Number") {
-                    let int = parseFloat(token.Source)
+                    let int = _parseFloat(token.Source)
 
                     if (int !== null && isFinite(int))
                         token.Source = int + "";
@@ -3433,7 +3439,7 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
 
                 if (token.Type == "String") {
                     token.Source = token.Source.replace(/\\\d+/gi, (got) => {
-                        let num = parseFloat(got.substr(1,got.length-1))
+                        let num = _parseFloat(got.substr(1,got.length-1))
                         if (num && isFinite(num) && ((num >= 97 && num <= 122) || (num >= 65 && num <= 90))) {
                           return String.fromCharCode(num)
                         }
@@ -3459,7 +3465,14 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
                 solveExpr(expr.FunctionArguments.TableExpr)
             }
         } else if(expr.Type == "FunctionLiteral") {
-            solveStat(expr.Body)
+            // if (!!expr.ArgList.length)
+                solveStat(expr.Body)
+            // else
+            // {
+            //     console.log((expr.Body.StatementList))
+            //     backAST.StatementList = [...backAST.StatementList,(expr?.Body?.StatementList ?? [])]
+
+            // }
         } else if(expr.Type == "VariableExpr") {
             // Dont care
         } else if(expr.Type == "ParenExpr") {
@@ -3563,9 +3576,9 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
                 return // Nope.
             }
 
-            let start = parseFloat(a.Token.Source)
-            let end = parseFloat(b.Token.Source)
-            let step = (c != null && parseFloat(c.Token.Source)) || 1
+            let start = _parseFloat(a.Token.Source)
+            let end = _parseFloat(b.Token.Source)
+            let step = (c != null && _parseFloat(c.Token.Source)) || 1
 
             let t1 = ((step > 0 && start <= end) || (step < 0 && start >= end))
             let t2 = ((end - start) + step) / step
@@ -3632,7 +3645,12 @@ function SolveMath(ast) { // This is some ugly code sorry for whoever is seeing 
                 default: break
             }
         } else if(stat.Type == "CallExprStat") {
-            solveExpr(stat.Expression)
+            if (stat.Expression.Base.Type == "ParenExpr")
+                {
+                    replace(stat,stat.Expression.Base.Expression.Body)
+                    solveStat(stat)
+                }
+            else solveExpr(stat.Expression)
         } else if(stat.Type == "AssignmentStat") {
             stat.Lhs.forEach((ex, index) => {
                 solveExpr(ex)
@@ -3934,7 +3952,7 @@ function Uglify(ast) {
 
         let leftover = value - Math.min(value, maxtablelength) // Set max table length to 100
 
-        if (parseFloat(dec) && isFinite(dec)) {
+        if (_parseFloat(dec) && isFinite(dec)) {
             leftover += (dec / 10)
         }
     
@@ -4121,7 +4139,7 @@ function Uglify(ast) {
 
             switch(expr.Type) {
                 case ("NumberLiteral"): {
-                    let value = isFinite(`0${expr.Token.Source}`) && parseFloat(`0${expr.Token.Source}`)
+                    let value = isFinite(`0${expr.Token.Source}`) && _parseFloat(`0${expr.Token.Source}`)
 
                     let howtofuckup = Math.floor(Math.random() * 25)
                     if (value !== null && typeof(value) == "number" && isFinite(value)) {
@@ -4139,8 +4157,8 @@ function Uglify(ast) {
                             } else if(ran == 1) {
 
                             } else {
-                                let plus = parseFloat(expr.Token.Source) - Math.floor(Math.random() * 500)
-                                let newor = parseFloat(expr.Token.Source - plus)
+                                let plus = _parseFloat(expr.Token.Source) - Math.floor(Math.random() * 500)
+                                let newor = _parseFloat(expr.Token.Source - plus)
                                 let newexpr = createbinop("+", createtype("NumberLiteral", newor), createtype("NumberLiteral", plus))
                                 replace(expr, createparenexpr(newexpr))
                             }*/
@@ -4955,7 +4973,7 @@ function UglifyVariables(globalScope, rootScope, renameGlobals) {
 
 // hi
 
-let watermark = `--[[\n\tcode generated using luamin.js, Herrtt#3868\n--]]`
+let watermark = `--[[\n\tcode generated using luamin.js, Herrtt#3868 \n -- Modifications done by:\n - pozm\n--]]`
 
 let luaminp = {}
 
