@@ -74,68 +74,34 @@ const CharacterForEscape = new Proxy(Main_CharacterForEscape, {
     get(a, b) { return _parseFloat(b) }
 })
 
-let AllIdentStartChars = [
-    'A',    'B',    'C',    'D',
-    'E',    'F',    'G',    'H',
-    'I',    'J',    'K',    'L',
-    'M',    'N',    'O',    'P',
-    'Q',    'R',    'S',    'T',
-    'U',    'V',    'W',    'X',
-    'Y',    'Z',    '_',    'a',
-    'b',    'c',    'd',    'e',
-    'f',    'g',    'h',    'i',
-    'j',    'k',    'l',    'm',
-    'n',    'o',    'p',    'q',
-    'r',    's',    't',    'u',
-    'v',    'w',    'x',    'y',
-    'z'
-]
+let rchars = ""
+for (let i=97; i<123;i++) {
+    rchars += String.fromCharCode(i)
+}
+rchars+= rchars.toUpperCase()
+rchars+= '_'
+AllIdentStartChars = [...rchars] // same as doing ` AllIdentStartChars  =  rchars.split("") `
+let Digits = [..."0123456789"]
 
-let AllIdentChars = [
-    '0',    '1',    '2',    '3',
-    '4',    '5',    '6',    '7',
-    '8',    '9',    
-    
-    
-    'A',    'B',
-    'C',    'D',    'E',    'F',
-    'G',    'H',    'I',    'J',
-    'K',    'L',    'M',    'N',
-    'O',    'P',    'Q',    'R',
-    'S',    'T',    'U',    'V',
-    'W',    'X',    'Y',    'Z',
-    '_',    'a',    'b',    'c',
-    'd',    'e',    'f',    'g',
-    't',    'u',    'v',    'w',
-    'h',    'i',    'j',    'k',
-    'l',    'm',    'n',    'o',
-    'p',    'q',    'r',    's',
-    'x',    'y',    'z',     // this was actually fucking retarded to add, pls dont do this to me
-]
+let AllIdentChars = [...rchars,...Digits]
 
-let Digits = [
-    '0','1','2','3',
-    '4','5','6','7',
-    '8','9',
-]
+let hexc = ""
+
+for (let i=97; i<(96+7);i++) {
+    hexc += String.fromCharCode(i)
+}
+hexc+= hexc.toUpperCase()
 
 let HexDigits = [
+
     //digits
-    '0','1','2','3',
-    '4','5','6','7',
-    '8','9',
+    ...Digits,
 
     //letters
-    'a','b','c','d','e','f',
-    'A','B','C','D','E','F',
+    ...hexc,
 ]
 
-let Symbols = [
-    '+', '-', '*', ')', ';',  
-    '/', '^', '%', '#',
-    ',', '{', '}', ':',
-    '[', ']', '(','.',
-]
+let Symbols = [..."'+-*);/^%#,{}:[](.'"]
 
 let EqualSymbols = [
     '~', '=', '>', '<',
